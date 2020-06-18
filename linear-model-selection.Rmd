@@ -1,54 +1,57 @@
 ---
 title: "Linear Model Selection"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 
-![](\static\p67.png)
+![](static\p67.png)
 
-![](\static\p68.png)
-
-
-
-
-![](\static\p69.png)
-
-
-![](\static\p70.png)
-
-
-![](\static\p71.png)
-
-
-![](\static\p72.png)
-
-
-![](\static\p73.png)
+![](static\p68.png)
 
 
 
 
-![](\static\p74.png)
-
-![](\static\p75.png)
+![](static\p69.png)
 
 
-![](\static\p76.png)
-
-![](\static\p77.png)
+![](static\p70.png)
 
 
-![](\static\p78.png)
+![](static\p71.png)
+
+
+![](static\p72.png)
+
+
+![](static\p73.png)
+
+
+
+
+![](static\p74.png)
+
+![](static\p75.png)
+
+
+![](static\p76.png)
+
+![](static\p77.png)
+
+
+![](static\p78.png)
 
 
 When n is larger than 7, BIC has a heavier penalty compared to cp. Hence BIC will take the simple model
 
 
-![](\static\p79.png)
+![](static\p79.png)
 
 ### Example removing NA data
 
 ```{r}
+library(ISLR)
 names(Hitters)
 dim(Hitters)
 sum(is.na(Hitters$Salary))
@@ -63,12 +66,12 @@ sum(is.na(Hit))
 ### Leaps library for subset selection
 
 ```{r}
-# library(leaps)
+library(leaps)
 
 # best subset
 
-regfit1.all <- regsubsets(Salary~., Hit)
-summary(regfit1.all) # will only report up till the 8th variable
+fit1.all <- regsubsets(Salary~., Hit)
+summary(fit1.all) # will only report up till the 8th variable
 
 ```
 
@@ -153,7 +156,7 @@ coef(regfit4.all, d)
 
 
 
-![](\static\p80.png)
+![](static\p80.png)
 
 
 ### Using subset selection with validation
@@ -200,7 +203,7 @@ coef(regfit2.all, aa)  # regfit 2 is the best subset with all 19 models, pick th
 ```
 
 
-![](\static\p81.png)
+![](static\p81.png)
 
 
 ## We ﬁrst calculate the standard error of the estimated test MSE for each m odel size, and then select the smallest model for which the estimated test error is within one standard error of the lowest point on the curve. The rationale here is that if a set of models appear to be more or less equally good, then we might as well choose the simplest model — that is, the model with the smallest number of predictors. In this case, applying the one-standard-error rule to the validation set or cross-validation approach leads to selection of the three-variable model.
