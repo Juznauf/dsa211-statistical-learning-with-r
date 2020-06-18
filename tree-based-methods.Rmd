@@ -1,0 +1,437 @@
+---
+title: "DSA 211 Notes"
+output: html_notebook
+---
+
+
+
+```{r include=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE,prompt = FALSE)
+
+```
+
+
+
+## Chapter 10
+## Tree-based methods 
+
+
+Terminology for decision trees
+- The divided regions are known as terminal nodes (or called leaves), leaf node
+- Decision trees are typically drawn upside down, leaves area
+
+Tree building via binary recursive splitting is using a greedy approach
+To decide each split we will calculate the RSS of each split and use the best one 
+
+```{r}
+library(tree)
+```
+
+```{r two region example}
+y <- c(2,2,2,3,4,5,12,14,12,14,15,15)
+x <- c(2,3,4,8,12,15,16,17,25,21,26,28)
+plot(x,y)
+tree1 <- tree(y~x)  # just like the lm function
+tree1
+abline(v = 15.5)
+sum((y-mean(y))^2)
+mean(y)
+plot(tree1)
+title(main = "Regression tree example")
+text(tree1, pretty = 0) # must state pretty = 0 for the nodes to be filled
+
+
+```
+
+to find the rss of each region j 
+
+```{r continue}
+tree1 # asterisk will indicate the leaf nodes
+mean(y)
+sum((y -mean(y))^2)
+a <- mean(y[x<15.5])
+b <- mean(y[x>=15.5])
+dev1 <- sum((y[x<15.5] - a)^2) # rss for below
+dev2 <- sum((y[x>=15.5] - b)^2) # rss for complement
+sprintf("RSS for dev 1 is %f", dev1)
+sprintf("RSS for dev 2 is %f", dev2)
+
+```
+ 
+ 
+```{r}
+library(MASS) # to get dataset BOSTON
+```
+ 
+ 
+Building and pruning a tree
+ 
+```{r}
+RNGkind(sample.kind =  "Rounding") # do once 
+set.seed(1)
+# predict the median house value "medv"
+train1 <- sample(1:nrow(Boston), nrow(Boston)/2)
+test1 <- (-train1)
+tree.boston <- tree(medv~., Boston, subset = train1) # run only on the train set
+summary(tree.boston) # gives us the residual mean deviance (RSS)
+plot(tree.boston)
+title("Regression tree for Boston Data")
+text(tree.boston,pretty = 0)
+tree.boston
+```
+ 
+The numerator of the residual mean deviance is the deviance divided by the sample size minus teh total number of nodes. The deviance is the second to last number in the output of `tree.boston`.
+ 
+ 
+### Tree pruning
+
+- Grow a very large tree, and then prune it back in order to obtain a subtree. 
+Cost complexity pruning, also known as weakest link pruning is used (similar to the concept of regularization)
+- The initial tree building process may overfit (good predictions on training set, but due to overfitting bad results on the test set). A smaller tree might lead to lower variance and better interpretaion at the cost of a little bias. 
+- Build the tree only so long as the decrease in the RSS due to each split exceeds some (high threshold) (dont just select the best at each instance). 
+- Grow a large tree first then prune it back, a tree that leads to the lowest test error rate.
+- We use the method of cross validation 
+
+
+The tree building and pruning algorithm
+
+1. Use recursive binary splitting to grow a large tree on the training data, stopping only when each terminal node has fewer than some minimum number of observations. 
+2. Apply cost complexity pruning to the large tree in order to obtain a sequence of best subtrees,  as a function of a
+3. **Use k-fold cross validation to choose a**. For each k
+  
+  * repeat steps 1 to 2 on the K-1/kth fraction of the training data excluding th kth fold
+  * Evaluate the mean squared prediction error on the data in the left out kth fold, as a function of a
+  Average the results, and pick a to minimize the average error
+4. Return the subtree from Step 2 that corresponds to the chosen value of a
+
+
+Example shown 
+```{r}
+cv.boston <- cv.tree(tree.boston)
+cv.boston
+nn <- cv.boston$size[which.min(cv.boston$dev)]
+nn
+plot(x = cv.boston$size, y = cv.boston$dev, type = 'b', main = "Cross validation: Deviance versus size", xlab = "Number of terminal nodes", ylab = "Deviance")
+prune.boston <- prune.tree(tree.boston, best = nn) # find the best tree with the hyperparameter a = nn
+plot(prune.boston)
+title("Pruned Regression Tree for Boston Data")
+text(prune.boston, pretty = 0)
+```
+
+
+
+
+### Validation error 
+To find the prediction error of optimal pruned tree by using the boston test set
+
+```{r}
+yhat1 <- predict(prune.boston, newdata = Boston[test1,])
+boston.test1 <- Boston[test1, "medv"]
+plot(yhat1, boston.test1, main= 'Pruned tree prediction vs observed sales for test data')
+abline(0,1) # intercept and slope  
+mean((yhat1-boston.test1)^2)
+
+```
+
+ 
+ 
+ Use the second best pruned tree
+ 
+```{r}
+prune.boston2 <- prune.tree(tree.boston, best = 7) # the second best size
+yhat2 <- predict(prune.boston2, newdata = Boston[test1,])
+boston.test2 <- Boston[test1, "medv"]
+plot(yhat2, boston.test2, main= 'Pruned tree prediction vs observed sales for test data')
+abline(0,1) # intercept and slope  
+mean((yhat2-boston.test2)^2)
+```
+ 
+```{r}
+prune.boston2
+plot(prune.boston2)
+text(prune.boston2, pretty = 0)
+```
+ 
+ 
+Comparing the two results with a regression approach
+
+```{r}
+lm.fit <- glm(medv~., data = Boston, subset = train1)
+lm.pred <- predict(lm.fit, data = Boston , subset = test1)
+plot(lm.pred, boston.test1, main = "Regression approach for boston data", 
+     xlab  = "Predict sales", ylab = "Observed sales")
+abline(0,1)
+mean((lm.pred-boston.test1)^2) # find the MSE of regression
+mean((yhat1-boston.test1)^2) # find the MSE of optimal prune tree
+mean((yhat2-boston.test1)^2) # find the MSE of optimal prune tree
+```
+
+
+
+### Final prediction model using all of the data 
+
+```{r}
+tree.bostonall <- tree(medv~., Boston)
+prune.bostonall <- prune.tree(tree.bostonall, best =nn)
+plot(prune.bostonall)
+title("Pruned regression tree for all Boston Data")
+text(prune.bostonall, pretty = 0)
+prune.bostonall
+```
+
+
+![flow chart](p1.png)
+
+ 
+
+## Classification Trees
+
+Similar to regression tree, to predict a qualitative response
+
+- Use recursive binary splitting to grow a classification tree
+- use a criterion for making the binary splits
+- Approaches are 
+  - Classification error rate
+  - Gini index
+  - Cross entropy 
+  
+  
+
+#### R Deviance
+
+A small deviance indicates a tree that provides a good fit to the training data
+
+The residual mean deviance is the deviance divided by the sample size minus the total number of nodes
+![pice2](p2.png)
+
+
+Example of fitting a classification tree
+
+```{r}
+# simple example of fitting a classification tree
+y <- c("No", "No", "No", "No", "Yes", "Yes","Yes", "Yes", "Yes","Yes", "Yes")
+x1 <- c(12,13,14,16, 15, 18, 19, 17, 20, 14, 12)
+x2 <- c(2, 3, 10, 14, 18, 17,16, 8, 9, 7, 4)
+bb <- data.frame(y, x1,x2)
+tree1 <- tree(y~x1+x2, bb)
+summary(tree1)
+tree1
+plot(tree1)
+title(main="Classification tree example")
+text(tree1, pretty=0)
+
+
+d1 <- -2*(3*log(0.6)+2*log(0.4))
+d2 <- -2*(1*log(1/6)+5*log(5/6))
+d1
+d2
+RMD <- (d1+d2)/(11-2)
+RMD
+MER <- (5*0.4+6*0.1667)/11 # this is the classification error rate
+MER
+
+```
+The output of the leaf nodes indicate the percentage of those who said no to yes. Possible for both nodes outcome to be yes, but the proportion of yes to no in both leaf nodes may be different.
+
+The classification error rate is the porportion of training observations in that region that do not belong to the most common class.
+
+![p3](p3.png)
+
+
+
+The gini index takes on small values if all of the proportions in each leaf node is close to zero or one (measures the node purity),a small value indicates that a node contains predominantly observations from a single class
+
+
+Cross entropy is similar to the gini index, they are quite similar numerically. Can use either the gini or cross entropy to evaluate the quality of a particular split, as there are more sensitive to node purity than the classification error rate.
+
+Any of the tree can be used when pruning a tree, although the classification error rate is preferable if prediction accuracy of the final tree is the goal
+
+
+
+
+Example of fitting a classification tree
+
+```{r}
+#Fitting Classification Trees
+library(ISLR)
+attach(Carseats)
+str(Carseats)
+HighSale <- ifelse(Sales <= 8, "No", "Yes") # new variable HighSale, if more than 8 is a high sale
+# make a new data frame called CarNew where Sales is replaced by HighSale
+CarNew <- data.frame(HighSale, Carseats[,-1])  
+tree.car <- tree(HighSale~., CarNew)
+summary(tree.car)
+plot(tree.car)
+title(main="Classification tree for Carseats data")
+text(tree.car, pretty=0)
+
+```
+
+
+
+
+
+```{r}
+# just using the validation set approach to measure the test error
+set.seed(2)
+
+train <- sample(1:nrow(CarNew), 200)  # use 200 data as training data
+CarNew.test <- CarNew[-train,]        # set the other 200 as test data
+high.test <- HighSale[-train]
+tree.car1 <- tree(HighSale~., CarNew, subset=train)
+tree.pred <- predict(tree.car1, CarNew.test, type="class") #for class prediction
+table1 <- table(tree.pred, high.test) # confusion matrix
+sensitivity1 <- table1[2,2]/sum(table1[,2])
+sensitivity1
+totalerror1 <- (table1[1,2]+table1[2,1])/sum(table1)  # total error rate
+totalerror1
+table1
+```
+
+
+Using the misclassification as the cv error, we can find the best tree by pruning using cross validation 
+
+```{r}
+# consider whether pruning the tree can improve the results
+set.seed(3)
+cv.car <-cv.tree(tree.car1, FUN=prune.misclass)  #indicate the classification error rate 
+plot(cv.car$size, cv.car$dev, type="b", main="Pruning classification tree: size versus deviance", xlab="number of nodes", ylab="error")
+nn <- cv.car$size[which.min(cv.car$dev)]
+prune.car1 <- prune.misclass(tree.car1, best=nn)
+plot(prune.car1)
+title(main="pruned classification tree with optimal size")
+text(prune.car1, pretty=0)
+tree.pred <- predict(prune.car1, CarNew.test, type="class")
+table2 <- table(tree.pred, high.test)
+sensitivity2 <- table2[2,2]/sum(table2[,2])
+sensitivity2
+totalerror2 <- (table2[1,2]+table2[2,1])/sum(table2)
+totalerror2
+table2
+
+```
+
+Qualitative predictors can also be split up, the first internal node, if the value is bad or medium then it goes to the left of the decision tree
+
+
+Downsides of trees, they do not have the same level of predictive accuray as some of the other regression and classification approaches/
+
+However, by aggregating many decision trees, using methods like bagging, random forrest and boosting, the predictive performance of trees can be improved.
+
+
+
+
+## Homework
+
+1. Set the random seed to (103)
+(a) Create a training set containing a random sample of 800 observations, and a test set containing the remaining observations
+
+
+```{r}
+library(ISLR)
+attach(OJ)
+set.seed(103)
+train <- sample(dim(OJ)[1], 800) 
+OJ.train <- OJ[train,] 
+OJ.test <- OJ[-train,] 
+```
+
+(b) Fit a tree to the training data, with Purchase as the response and the other variables as predictors. What is the training error rate? How many terminal nodes does the tree have? 
+
+```{r}
+oj.tree <- tree(Purchase~., data=OJ.train) 
+summary(oj.tree) 
+oj.tree 
+```
+
+The training error rate which is the misclassification error rate is 0.1662, there are a total of 8 terminal nodes 
+
+ 
+(c) Create a plot of the tree.
+```{r}
+plot(oj.tree) 
+title(main="Classification tree analysis of OJ data set") 
+text(oj.tree, pretty=0)
+```
+ 
+ 
+(d) Predict the response on the test data, and produce a confusion matrix comparing the test labels to the predicted test labels. What is the test error rate? 
+
+```{r}
+oj.pred <- predict(oj.tree, OJ.test, type="class") 
+table1 <- table(OJ.test$Purchase, oj.pred) 
+table1 
+error <-(table1[1,2]+table1[2,1])/sum(table1) 
+error 
+ 
+```
+
+
+(e)Apply the cross validation to the training set in order to determine the optimal tree size. What is the optimal tree size? 
+
+ 
+```{r}
+cv.oj <- cv.tree(oj.tree, FUN = prune.misclass)
+nn 
+oj.pruned <- prune.misclass(oj.tree, best=nn) 
+summary(oj.pruned)
+```
+
+the optimal tree size is 4
+
+
+Use the function prune.misclass to prune by the misclassification error and select best == cv best
+
+(f) Produce a pruned tree to the training data with the corresponding optimal tree size obtained using cross-validation. What is the training error rate of this pruned tree? 
+
+```{r}
+oj.pruned <- prune.misclass(oj.tree, best = nn)
+summary(oj.pruned)
+
+
+```
+
+The training error is 0.1662 (similar to running with all the trees)
+
+(g) Predict the response on the test data based on the pruned tree obtained in part (f), and produce a confusion matrix comparing the test labels to the predicted test labels based on the pruned tree. What is the test error rate of this pruned tree? 
+
+```{r}
+pred.pruned <- predict(oj.pruned, OJ.test, type="class") 
+table.pruned <- table(OJ.test$Purchase, pred.pruned) 
+table.pruned 
+error.pruned <-(table.pruned[1,2]+table.pruned[2,1])/sum(table.pruned) 
+error.pruned 
+```
+
+(h) Produce the ﬁnal pruned tree to all the data with the corresponding optimal tree size obtained using cross-validation. Plot the ﬁnal pruned tree.
+
+```{r}
+ojall.tree <- tree(Purchase~., data=OJ) 
+
+ojall.pruned <- prune.misclass(ojall.tree, best=nn) 
+plot(ojall.pruned) 
+title(main="Pruned tree of all OJ data set") 
+text(ojall.pruned, pretty=0) 
+summary(ojall.pruned)
+```
+
+Remember to fit a new tree with all the data
+
+
+
+```{r}
+# use the random forest approach 
+library(randomForest) 
+# determine mtry=sqrt(17 of independent variables X)=approx 4 
+ranfor.OJ <- randomForest(Purchase~., data=OJ,  
+                           subset=train, mtry=4, importance=TRUE) #using random forests 
+ranfor.OJ 
+pred.ranfor <- predict(ranfor.OJ, OJ.test, type="class") 
+table.ranfor <- table( OJ.test$Purchase, pred.ranfor) 
+table.ranfor 
+error.ranfor <-(table.ranfor[1,2]+table.ranfor[2,1])/sum(table.ranfor) 
+error.ranfor 
+importance(ranfor.OJ) 
+varImpPlot(ranfor.OJ, main="Importance measure plot for OJ data") 
+```
+

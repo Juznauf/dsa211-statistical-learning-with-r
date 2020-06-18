@@ -1,0 +1,204 @@
+---
+title: "Statistics Inference"
+output: html_notebook
+---
+
+
+
+### Confidence interval for mean for one sample 
+
+```{r}
+lunch <- c(7.2, 6.4, 8.2, 6.3, 7.9, 10.5, 5.5, 6.2, 7.5, 6.8, 8.5, 7.3, 
+           7.0, 11.5, 8.5, 6.4)
+
+t.test(lunch,alternative = 'two.sided',conf.level = 0.95)
+
+```
+
+The 95% confidence interval for the average lunch spending is (6.579, 8.453)
+Or we are 95% confident the average lunch spending is (6.579, 8.453)
+
+As we have determined the numerical result, it is no longer sensible to speak about the probability of its covering the fixed quantity 
+
+If many repeated samples with same sample size were taken form the same population and the ci constructed, the proportions of intervals containing the mean would be approximately 0.95
+
+There is a 95% chance that the confidence interval you calculated contains the true population mean. It is not quite correct to say that there is a 95% chance that the population mean lies within the interval. 
+
+### Confidence interval for population proportion
+
+During June and July of 2001, the European Union Executive Commission conducted a study of 6,543 European adults.  Of those surveyed, 56% said that the euro single currency would promote economic growth and 73% knew the correct date of the changeover (January 1, 2002).
+Construct a 95% confidence interval estimate for the proportion of European adults who believe that the euro would promote economic growth.
+
+
+
+```{r}
+prop.test(3664, 6543, alternative = 'two.sided',
+          conf.level = 0.95, correct = FALSE)  # do not use continuity correction 
+```
+
+The 95% confidence interval for the proportion of european adults who believe that the euro would promote economic growth is (0.5479284,0.5719768)
+
+
+## Hypothesis testing
+
+If the sample size is small (less than 30), then we assume that the population is normal. 
+If the sampel size is large, the test statistic is normal by the CLT (convergence in distribution). No assumption to be made about the population, use the estimate to make the inference about the population 
+
+
+### Example 3
+
+Using the 5% level of significance, is there evidence that the mean lunch spending is different from $6
+
+```{r}
+lunch
+result1 <- t.test(lunch, alternative = 'two.sided', mu = 6, conf.level = 0.95)
+result1
+```
+Ans: Since the absolute value of test statistic is 4.0426 which is more than critical value 2,13145 or the pvalue is less that 0.05, we reject the null hypothesis. The data provides sufficient evidence that the mean spending is different from \$6. In fact, the average lunch spending is more than $6 by looking at the sample mean
+
+### Example 4
+
+A 1999 General Accounting Office (GAO) study found that a third of the 23.4 million retirees 65 or older supplemented Medicare with some form of employer coverage (Wall Street Journal, June 26, 2002)
+Suppose that in a current study, a random sample of 500 retirees 65 or older indicated that 185 supplemented Medicare with some form of employer coverage.
+At the 0.05 level of significance, is there evidence that the proportion of retirees 65 or older that supplement Medicare with some form of employer coverage is now different from one-third?
+
+```{r}
+result2 <- prop.test(185, 500, p =0.3333, alternative = 'two.sided', conf.level = 0.95, correct = FALSE)
+result2
+
+a <- (0.37-0.3333)/sqrt(0.3333*(1-0.3333)/500)
+a^2 # to find the statistic by normal standardization 
+```
+
+
+Since the p-value is more than 0.05, we dont reject the null hypothesis. The data do not provide evidence that the proportion is different from one-third.
+
+
+## Hypothesis test for two population means
+
+Two population means, independent samples. 
+
+Estimating the variance, if the two population variances are not given, we use the t.test
+
+Assume that the population variances are equal, so use the two sample standard deviations and pool them to estimate the population variance 
+
+![](p5.png)
+
+### Example 5
+
+The amounts that a sample of 16 customers spend for dinner ($) at the same fast-food restaurant are given as:
+8.3, 6.8, 8.0, 7.5, 8.3, 10.2, 8.5, 7.4, 8.5, 7.8, 8.3, 8.3, 9.2, 10.4, 9.5, 7.4
+
+At the 0.05 level of significance, is there evidence of a difference between the mean of spending for lunch and mean of spending for dinner?  Assume that the two population variances are equal.
+
+
+```{r}
+dinner <- c(8.3, 6.8, 8.0, 7.5, 8.3, 10.2, 8.5, 7.4, 8.5, 7.8, 8.3, 8.3, 9.2, 10.4, 9.5, 7.4)
+
+result3 <- t.test(lunch, dinner, alternative = 'two.sided',conf.level = 0.95, var.equal = TRUE, mu = 0)
+result3
+
+boxplot(lunch, dinner, main = "Boxplot of lunch and dinner", names = c("Lunch", "Dinner"), col = 'yellow',xlab = "Time period", ylab="Spending($)")
+
+```
+
+Since the p-value is 0.1014 more than 0.05, we don’t reject null hypothesis.  The data do not provide sufficient evidence that mean spending for lunch is different from the mean spending for dinner.
+
+
+Run the same test but with no assumption about the population vairances
+
+```{r}
+result4 <- t.test(lunch, dinner, alternative = 'two.sided',conf.level = 0.95, var.equal = FALSE, mu = 0)
+result4
+
+```
+
+
+Two population proportion test
+
+### Example 6
+
+A sample of 500 shoppers was selected in a large metropolitan area to determine various information concerning consumer behavior.
+Among the questions asked was, “Do you enjoy shopping for clothing?”
+Of 240 males, 136 answered yes.
+Of 260 females, 224 answered yes.
+Is there evidence of a significant difference between males and females in the proportion who enjoy shopping for clothing at the 0.01 level of significance? 
+
+
+```{r}
+result5 <- prop.test(c(136,224), c(240,260), alternative = 'two.sided', 
+                     conf.level = 0.99, correct = FALSE)
+result5
+```
+
+Since the sample size requurements are satisfied, the test statistics is approx normal by CLT, no assumption is needed. 
+
+The data provides sufficient evidence the difference between males and females in the proportion who enjoy shopping for clothing at the 0.01 sig level
+
+
+### Homework 2
+
+### Question 1
+
+A bank with several branches located in a commercial district of a city has the business objective of developing an improved process for serving customers during the noon-to-1 P.M. lunch period. Management decides to ﬁrst study the waiting time in the current process. The waiting time is deﬁned as the number of minutes that elapses from when the customer enters the line until he or she reaches the teller window. Data are collected from a random sample of 20 customers in each of two branches. Branch 1 data are:
+4.2, 4.5, 4.6, 4.7, 5.2, 6.1, 7.2, 8.9, 5.6, 6.9
+5.7, 6.5, 7.1, 4.9, 5.8, 6.3, 6.2, 6.9, 7.6, 6.5
+Branch 2 data are:
+5.1, 5.6, 6.6, 4.7, 5.9, 6.7, 6.2, 7.9, 7.6, 7.9
+5.9, 7.5, 7.4, 5.7, 6.7, 6.4, 7.7, 7.6, 8.6, 7.3
+
+
+(a) Assuming that the population variances from both banks are equal, is there evidence of a diﬀerence in the mean waiting time between the two branches? (Use α = 0.05.) 
+```{r}
+branch1 <- c(4.2, 4.5, 4.6, 4.7, 5.2, 6.1, 7.2, 8.9, 5.6, 6.9,
+5.7, 6.5, 7.1, 4.9, 5.8, 6.3, 6.2, 6.9, 7.6, 6.5)
+branch2 <- c(5.1, 5.6, 6.6, 4.7, 5.9, 6.7, 6.2, 7.9, 7.6, 7.9,
+5.9, 7.5, 7.4, 5.7, 6.7, 6.4, 7.7, 7.6, 8.6, 7.3)
+
+result6 <- t.test(branch1, branch2, mu = 0, alternative = 'two.sided', conf.level = 0.95, var.equal = TRUE)
+result6
+
+
+```
+
+As the p-value is 0.0633 which is more than 0.05, we do not reject the null hypothesis, insufficient evidence that the mean waiting time between the two branches are different. 
+
+
+(b) Construct 95% conﬁdence interval estimate of the diﬀerence in the mean waiting time between the two branches. 
+```{r}
+result6
+```
+The 95% confidence interval estimate of the difference in the mean waiting time between the two branches is (-1.3995785,0.0395785) minutes. 
+
+(c) Re-do parts (a) and (b) without the assumption of equal population variances.
+```{r}
+result7 <- t.test(branch1, branch2, mu = 0, alternative = 'two.sided', conf.level = 0.95, var.equal = FALSE)
+result7
+```
+
+
+### Question 2
+
+How often does work intrude during off hours? A survey of 1000 oﬃce workers indicated that 50% of males and 42% of females had oﬃce intrusions while on vacation. The survey consisted of 450 males and 550 females. Correction for continuity is not needed.
+
+(a) At the 0.05 level of signiﬁcance, is there evidence of a diﬀerence in the proportion of males and females who experience oﬃce intrusions while on vacation? If yes, which proportion is higher? 
+```{r}
+male.yes <- round(0.5 * 450,digits = 0)
+female.yes <- round(0.42 * 550,digits = 0)
+result8 <- prop.test(c(male.yes,female.yes) ,n = c(450, 550), alternative = 'two.sided', conf.level = 0.95, correct = FALSE) 
+result8
+
+```
+
+As the p-value = 0.01151 is less than 0.05, we can reject the null hypothesis and conclude at the 5% significance level that there is enough evidence that there is a difference in the proportion of males and females who experience office intrusions while on vacation. The proportion of males is higher than females
+
+(b) Construct 95% conﬁdence interval estimate of the diﬀerence between the proportions of males and females who experience oﬃce intrusions while on vacation.
+
+```{r}
+result8
+```
+The 95% confidence interval is  (0.01801,0.1419) give 4dp
+
+
+Use the `qt()` function to find the quantile of a t distribution 
+

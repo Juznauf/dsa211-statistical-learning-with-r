@@ -1,0 +1,298 @@
+---
+title: "Resampling Methods"
+output: html_notebook
+---
+
+
+![](p50.png)
+
+The process of evaluating a models performance is known as model assessment, the process of selecting the proper level of flexibility for a model is known as model selection. 
+
+
+Overfitting = The test error is very much lower than the training error. The training error is low.
+
+![](p51.png)
+
+
+Split the data into two halves the training and the validation set
+
+
+### Example degrees of polynomial vs MSE
+
+```{r message = FALSE, warning = FALSE}
+# library(ISLR)
+# validation set approach
+attach(Auto)
+# summary(Auto)
+RNGkind(sample.kind = "Rounding")
+set.seed(141)  # everyone should get the same answer
+train <- sample(392,196)
+lm.fit1 <- lm(mpg~horsepower, data=Auto, subset=train)
+mse1 <- mean((mpg-predict(lm.fit1, Auto))[-train]^2)
+lm.fit2 <- lm(mpg~poly(horsepower,2, raw=TRUE), data=Auto, subset=train)
+mse2 <- mean((mpg-predict(lm.fit2, Auto))[-train]^2)
+lm.fit3 <- lm(mpg~poly(horsepower,3, raw=TRUE), data=Auto, subset=train)
+mse3 <- mean((mpg-predict(lm.fit3, Auto))[-train]^2)
+mse1
+mse2
+mse3
+```
+
+![](p52.png)
+
+![](p53.png)
+![](p54.png)
+
+![](p55.png)
+
+![](p56.png)
+
+
+
+### LOOCV Example
+
+```{r}
+
+# library(boot)
+glm.fit1 <- glm(mpg~horsepower, data=Auto)
+cv.err1 <- cv.glm(Auto, glm.fit1)
+cv.err1$delta
+
+# delta[1] is the standard CV estimate where delta[2] is a bias-corrected version
+#LOOCV with complex polynomial fits
+cv.err2 <- rep(0,10)
+for (i in 1:10)  {
+  glm.ff <- glm(mpg~poly(horsepower,i, raw=TRUE), data=Auto)
+  cv.err2[i] <-cv.glm(Auto, glm.ff)$delta[1]}
+cv.err2
+plot(c(1:10), cv.err2, type="b", main="LOOCV", 
+       xlab="Degree of Polynomial", ylab="MSE")
+
+```
+
+
+
+### Example of 5-fold validation
+
+```{r}
+set.seed(17)
+cv.err3 <- rep(0,10)
+for (i in 1:10)  {
+  glm.ff <- glm(mpg~poly(horsepower,i, raw=TRUE), data=Auto)
+  cv.err3[i] <-cv.glm(Auto, glm.ff, K=5)$delta[1]}
+cv.err3
+plot(c(1:10), cv.err3, type="b", main="5-fold CV", 
+     xlab="Degree of Polynomial", ylab="MSE")
+
+```
+
+## call delta to get the the cv MSE 
+
+
+
+![](p57.png)
+
+![](p58.png)
+
+
+
+
+![](p59.png)
+
+
+### Bootstrap numerical example
+
+```{r}
+set.seed(17)
+population <- rpois(100, 7.8)
+sam <- sample(population, 8, replace = F)
+res <- matrix(NA, 1000, 8)
+ave <- NULL
+for (i in 1:1000) {
+  res[i,] <- sample(sam, 8, replace = T)
+  ave[i] <- mean(res[i,])
+}
+population
+sam
+res[1:9,]
+mean(sam)
+mean(ave)
+sd(ave)
+hist(ave)
+```
+
+![](P60.png)
+
+
+![](p61.png)
+
+
+
+
+
+### Bootstrap to estimate the 95% CI of the slope of the linear regression model 
+
+```{r}
+
+boot.fn <- function(da, ind)
+  return(coef(lm(mpg~horsepower, data=da, subset=ind)))
+set.seed(123)
+boot.fn(Auto, sample(392, 392, replace=T))  # bootstrap one time only
+```
+
+
+```{r}
+bs_result <- boot(Auto, boot.fn, R=10000)  #use boot function to bootstrap 10000 times
+c(quantile(bs_result$t[,2], 0.025), quantile(bs_result$t[,2], 0.975))
+lm.ff <- lm(mpg~horsepower, data=Auto)
+summary(lm.ff)
+confint(lm.ff)
+```
+
+```{r}
+names(bs_result)
+head(bs_result$t[,2])
+```
+The first 5 bootstrapped coefficients for horspower
+
+
+![](p62.png)
+
+![](p63.png)
+
+Will seriously underestimate the true prediction error as the bootstrap data and the original data are highly correlated
+
+![](p64.png)
+
+As majority of the bootstraps have 2/3 of the original data, use the 1/3 data as the hold out set to estimate the prediction error
+
+
+
+## using CV to estimate the test error
+
+![plot of true test error against CV and LOOCV error](p66.png)
+
+Despite the fact that the cv and LOOCV sometimes underestimate the true test MSE, all of the CV curves come close to identifying the correct level of flexibility-that is the flexibility (complexity) level corresponding to the smallest test MSE
+
+
+
+
+
+
+## Homework 7
+
+### Question 1
+
+Based on the information of Sales and Price in the data ﬁle Carseats and set the random seed to 123,
+
+(a) By using the given data set as training set, ﬁt the polynomial regression models for polynomials of order i = 1 to i = 4 that use Price to predict Sales. 
+
+
+```{r message=FALSE, warning=FALSE}
+library(boot)
+library(ISLR)
+library(MASS)
+attach(Carseats)
+```
+
+## Remember to use raw =TRUE
+
+```{r}
+set.seed(123)
+lm.fit1 <- lm(Sales~poly(Price, 1,raw = TRUE), data = Carseats)
+lm.fit2 <- lm(Sales~poly(Price, 2,raw = TRUE), data = Carseats)
+lm.fit3 <- lm(Sales~poly(Price, 3,raw = TRUE), data = Carseats)
+lm.fit4 <- lm(Sales~poly(Price, 4,raw = TRUE), data = Carseats)
+
+coef(lm.fit1)
+coef(lm.fit2)
+coef(lm.fit3)
+coef(lm.fit4)
+```
+
+S=13.64-0.053P  where S=Sales and P=Price;  
+S=14.27-0.06459P+5.038e-5P^2 
+S=16.34-0.1272P+6.424e-4P^2-1.771e-6P^3 
+S=2.553+0.522P-0.0096P^2+6.497e-5P^3-1.529e-7P^4 
+
+
+(b) Identify which polynomial regression model is the best
+
+```{r}
+summary(lm.fit1)
+summary(lm.fit2)
+summary(lm.fit3)
+summary(lm.fit4)
+```
+
+Polynomial with order 4 is the best model among the four models since it has the highest adjusted R-squared of 0.2033
+
+
+(c) Using the Leave-One-Out cross validation approach, ﬁt the polynomial regression models for polynomials of order i = 1 to i = 4 that use Price to predict Sales and compute the cross-validation errors for each model. 
+
+```{r}
+
+cv.err1 <- NULL
+for (i in 1:4) {
+  glm.fit <- glm(Sales~poly(Price, i, raw = TRUE), data = Carseats)
+  cv.err1[i] <- cv.glm(Carseats,glm.fit)$delta[1]
+}
+cv.err1
+```
+
+
+Cross-validation errors for polynomial regression models 1, 2, 3, and 4 are 6.444, 6.484, 6.624 and 6.387, respectively. 
+
+
+(d) Based on the results in part (c), determine which polynomial regression model should be used and the model estimates. 
+
+
+```{r}
+best <- which.min(cv.err1)
+lm.fit2 <- lm(Sales~poly(Price, best, raw = TRUE), data = Carseats)
+coef(lm.fit2)
+```
+
+Polynomial with order 4 should be used as it has the smallest crossvalidation error of 6.387 in LOOCV.    S=2.553+0.522P0.0096P^2+6.497e-5P^3-1.529e-7P^4 
+
+(e) Using the 10-fold cross-validation, ﬁt the polynomial regression models for polynomials of order i = 1 to i = 4 that use Price to predict Sales and compute the associated cross-validation errors for each model. 
+
+```{r}
+cv.err2 <- NULL
+for (i in 1:4) {
+  glm.fit2 <- glm(Sales~poly(Price,i, raw = TRUE), data = Carseats)
+  cv.err2[i] <- cv.glm(Carseats, glm.fit2, K = 10)$delta[1]
+}
+cv.err2
+
+
+```
+
+(f) Based on the results in part (e), determine which polynomial regression model should be used and the model estimates.
+
+
+```{r}
+lm.fit2 <- lm(Sales~poly(Price, which.min(cv.err2), raw = TRUE), data = Carseats)
+coef(lm.fit2)
+```
+
+Polynomial with order 4 should be used as it has the smallest crossvalidation error of 6.387 with k=10.    
+
+S=2.553+0.522P0.0096P^2+6.497e-5P^3-1.529e-7P^4 
+
+![](p65.png)
+
+
+
+## Bias-Variance Trade off
+
+The k-fold CV has a computational advantage to LOOCV. But putting computational issues asside, a less obvious but potentially more important advantage of k-fold CV is that it often gives more accurate estimates of the test error rate than does LOOCV. This has to do with a bias-variance trade-oﬀ.
+
+It was mentioned in Section 5.1.1 that the validation set approach can lead to overestimates of the test error rate, since in this approach the training set used to ﬁt the statistical learning method contains only half the observations of the entire data set. Using this logic, it is not hard to see that LOOCV will give approximately unbiased estimates of the test error, since each training set contains n−1 observations, which is almost as many as the number of observations in the full data set. And performing k-fold CV for, say, k = 5 or k = 10 will lead to an intermediate level of bias, since each training set contains (k −1)n/k observations — fewer than in the LOOCV approach, but substantially more than in the validation set approach. Therefore, from the perspective of bias reduction, it is clear that LOOCV is to be preferred to k-fold CV. 
+
+However, we know that bias is not the only source for concern in an estimating procedure; we must also consider the procedure’s variance. It turns out that LOOCV has higher variance than does k-fold CV with k < n. Why is this the case? When we perform LOOCV, we are in eﬀect averaging the outputs of n ﬁtted models, each of which is trained on an almost identical set of observations; therefore, these outputs are highly (positively) correlated with each other. In contrast, when we perform k-fold CV with k < n, we are averaging the outputs of k ﬁtted models that are somewhat less correlated with each other, since the overlap between the training sets in each model is smaller. Since the mean of many highly correlated quantities has higher variance than does the mean of many quantities that are not as highly correlated, the test error estimate resulting from LOOCV tends to have higher variance than does the test error estimate resulting from k-fold CV. 
+
+
+To summarize, there is a bias-variance trade-oﬀ associated with the choice of k in k-fold cross-validation. Typically, given these considerations, one performs k-fold cross-validation using k = 5 or k = 10, as these values have been shown empirically to yield test error rate estimates that suﬀer neither from excessively high bias nor from very high variance.
+
+

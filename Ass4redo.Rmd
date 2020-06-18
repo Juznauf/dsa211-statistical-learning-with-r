@@ -1,0 +1,318 @@
+---
+title: "ass4 redo"
+output: html_notebook
+---
+
+
+
+
+1. The owner of a moving company typically has his most experienced manager predict the total number of labor hours (Hours) that will be requiredto complete an upcoming move. This approach has proved useful in the past, but the owner has the business objective of developing a more accurate method of predicting labor hours. In a preliminary eﬀort to provide a more accurate method, the owner has decided to use the number of cubic feet moved (Feet), the number of pieces of large furniture (Large) and whether there is an elevator in the apartment building (Elevator) as the independent variables and has collected data for moves in which the origin and destination were within the borough of Manhattan in New York City and the travel time was an insigniﬁcant portion of the hours worked. The data are organized and stored in Moving2020.csv.
+
+
+
+```{r}
+Moving <- read.csv("D:/User/Documents/SMU CONTENT/Year 3 Sem 2/DSA 211/All Assignments/Assignment/Moving2020.csv")
+names(Moving)
+library(leaps)
+```
+
+
+(a) Fit the multiple regression equation to predict the total number of labor hours with all independent variables by using the Best Subset Selection with adjusted R2 criterion on the training set. Plot the graph to show the number of variables versus adjusted R2 in each selection step. 
+
+
+```{r}
+
+reg.fit1 <- regsubsets(Hours~., data = Moving)
+
+reg.summary1 <- summary(reg.fit1)
+
+plot(reg.summary1$adjr2, main="Adjusted r^2 plot", 
+     xlab="Number of variables", ylab="Adjusted r^2", type="b")
+
+coef(reg.fit1, which.max(reg.summary1$adjr2))
+
+```
+
+
+(b) Fit the multiple regression equation to predict the total number of labor hours with all independent variables by using the Forward Stepwise Selection and BIC criterion on the training set. Plot the graph to show the number of variables versus BIC in each selection step. 
+
+
+
+```{r}
+
+reg.fit2 <- regsubsets(Hours~., data = Moving, method = 'forward')
+
+reg.summary2 <- summary(reg.fit2)
+
+plot(reg.summary2$bic, main="BIC plot", 
+     xlab="Number of variables", ylab="BIC", type="b")
+
+coef(reg.fit2, which.min(reg.summary2$bic))
+
+
+
+```
+
+
+
+(c) Fit the multiple regression equation to predict the total number of labor hours with all independent variables by using the Backward Stepwise Selection and Cp criterion on the training set. Plot the graph to show the number of variables versus Cp in each selection step.
+
+
+
+```{r}
+reg.fit3 <- regsubsets(Hours~., data = Moving, method = 'backward')
+
+reg.summary3 <- summary(reg.fit3)
+
+plot(reg.summary3$cp, main="cp plot", 
+     xlab="Number of variables", ylab="cp", type="b")
+
+coef(reg.fit3, which.min(reg.summary3$cp))
+
+```
+
+
+
+2. The stock prices of Singapore Telecommunications Limited (SingTel) with code (Z74.SI) and Singapore Airlines Limited (SIA) with code (C6L.SI) from 27 August 2018 to 29 July 2019 are stored in SingTelSIA2020.csv. Suppose a portfolio investment has 7,000 shares of SingTel at price of $3.34 per share and 5,000 shares of SIA at price of $9.46 per share on 29 July 2019. Therefore, the portfolio investment has value of $70,680 (7,000 × 3.34 + 5,000 × 9.46) on 29 July 2019.
+
+
+
+
+(a) Based on the historical approach without any assumption of distribution, calculate the one-day 99% VaR for this portfolio on 29 July 2019. 
+
+
+
+
+```{r}
+
+All <- read.csv("D:/User/Documents/SMU CONTENT/Year 3 Sem 2/DSA 211/All Assignments/Assignment/SingTelSIA2020.csv")
+
+head(All)
+```
+
+```{r}
+singtel <- All$SingTel
+sia <- All$SIA
+
+price <- 7000*singtel+5000*sia  # keep track of the portfolio weights
+rate <- NULL 
+for (i in 1:(length(price)-1)) 
+  {rate[i] <- (price[i]-price[i+1])/price[i+1]} 
+portfolio <- 7000*3.34+5000*9.46 
+AbsVaR <- portfolio*(-1)*quantile(rate, 0.01) 
+meanR <- portfolio*mean(rate) 
+VaR1 <- AbsVaR+meanR 
+VaR1 
+
+```
+
+
+
+1444.525 
+
+
+
+
+
+(b) Without any assumption of distribution, estimate the one-day 99% VaR for this portfolio on 29 July 2019 based on the Bootstrap approach with 100,000 repetitions. (Note: use set.seed(5483)) 
+
+
+
+
+```{r}
+RNGkind(sample.kind = "Rounding")
+set.seed(5483)
+
+library(boot) 
+
+
+boot.fn <- function(da, ind) { 
+  AbsVaR <- (7000*3.34+5000*9.46)*(-1)*quantile(da[ind], 0.01) 
+  meanR <- (7000*3.34+5000*9.46)*mean(da[ind]) 
+  return(AbsVaR+meanR) 
+} 
+bs_result <- boot(rate, boot.fn, R=100000) 
+bs_result 
+
+mean(bs_result$t) 
+
+
+
+
+
+
+```
+
+
+
+
+(c) Obtain a 95% Bootstrap percentile conﬁdence interval for the one-day 99% VaR for this portfolio on 29 July 2019.
+
+
+```{r}
+
+c(quantile(bs_result$t, 0.025), quantile(bs_result$t, 0.975)) 
+```
+
+
+
+
+3. The director of a training program for a large insurance company has the business objective of determining which training method is best for training underwriters. The two methods to be evaluated are traditional classroom and web-based. The 170 trainees are divided into two randomly assigned groups. The ﬁrst group of 70 trainees are given traditional classroom training while the second group of 100 trainees are trained by web-based approach. Before the start of the training, each trainee is given a proﬁciency test that measures mathematics and computer skills. At the end of the training, all students take the same end-of-training exam. The results are organized and stored in Underwriting2020md.csv. You are asked to develop a multiple regression model to predict the score on the end-of-training exam.
+
+```{r}
+under <- read.csv("D:/User/Documents/SMU CONTENT/Year 3 Sem 2/DSA 211/All Assignments/Assignment/Underwriting2020md.csv")
+names(under)
+```
+
+(a) Find the estimated multiple regression model, M1, with all the independent variables. 
+
+```{r}
+glm.fit1 <- glm(Exam~., data = under)
+# coef(glm.fit1)  
+summary(glm.fit1)
+```
+
+(b) Find the second estimated multiple regression model, M2, with only signiﬁcant independent variables found in part (a). 
+
+
+```{r}
+glm.fit2 <- glm(Exam~.-Gender-Age, data = under)
+# coef(lm.fit2)  
+summary(glm.fit2)
+```
+
+
+
+
+
+(c) Find the third estimated multiple regression model, M3, with signiﬁcant independent variables found in part (b), with their interaction eﬀects. 
+
+
+```{r}
+glm.fit3 <- glm(Exam~ Proficiency*Method, data = under)
+# coef(lm.fit3)
+summary(glm.fit3)
+```
+
+
+(d) When comparing three estimated models: M1, M2 and M3, explain why model M3 is a better model based on the criterion of AIC.
+
+
+Model 3 has the lowest AIC
+
+(e) Use the Leave-One-Out cross-validation approach to ﬁt the models of M1, M2, and M3 and determine which model is the best under the criterion of their associated cross-validation errors. 
+
+
+
+
+```{r}
+cv.er1 <- cv.glm(glm.fit1, data = under)$delta[1]
+cv.er2 <- cv.glm(glm.fit2, data = under)$delta[1]
+cv.er3 <- cv.glm(glm.fit3, data = under)$delta[1]
+
+cv.er1
+cv.er2
+cv.er3
+```
+
+
+(f) Use the 10-fold cross-validation approach to ﬁt the models of M1, M2, and M3 and determine which model is the best under the criterion of their associated crossvalidation errors. (Note: use set.seed(1208))
+
+
+```{r}
+set.seed(1208)
+
+cv.er1 <- cv.glm(glm.fit1, data = under, K =10)$delta[1]
+cv.er2 <- cv.glm(glm.fit2, data = under, K = 10)$delta[1]
+cv.er3 <- cv.glm(glm.fit3, data = under, K = 10)$delta[1]
+
+cv.er1
+cv.er2
+cv.er3
+
+
+```
+
+
+
+
+
+4. Based on the Auto2020.csv data set, predict the mile per gallons (mpg) received using all the other seven independent variables. Create a training set containing a random sample of 300 observations and a test set containing the remaining observations. Set the random seed to (1239).
+
+
+```{r}
+Auto <- read.csv("D:/User/Documents/SMU CONTENT/Year 3 Sem 2/DSA 211/All Assignments/Assignment/Auto2020.csv")
+names(Auto)
+```
+
+(a) Fit a ridge regression model on the training set, with λ chosen by cross-validation. Report the test error obtained, along with the value of chosen λ and the coeﬃcient estimates of the ﬁnal ridge regression model.
+
+```{r}
+set.seed(1239)
+train <- sample(1:nrow(Auto), 300) 
+test <- -train 
+```
+
+
+```{r}
+# <!-- library(glmnet)  -->
+
+train.x <- model.matrix(mpg~., data=Auto[train,])[,-1] #take away the intercept
+train.y <- Auto[train,1] 
+test.x <- model.matrix(mpg~., data=Auto[test,])[,-1] 
+test.y <- Auto[test,1] 
+grid <- 10^seq(10, -2, length=100) 
+ 
+ridge.mod <- cv.glmnet(train.x, train.y, alpha=0, lambda=grid) 
+lambda.rr <- ridge.mod$lambda.min  
+lambda.rr 
+
+ridge.pred <- predict(ridge.mod, newx=test.x, s=lambda.rr) 
+mean((test.y-ridge.pred)^2) 
+
+x <- model.matrix(mpg~., data=Auto)[,-1] 
+y <- Auto$mpg 
+out.rr <- glmnet(x,y, alpha=0, lambda=grid)  # on whole data set
+rr.coef <- predict(out.rr, type="coefficients", s=lambda.rr)[1:8,] 
+rr.coef 
+```
+
+(b) Fit a Lasso model on the training set, with λ chosen by cross-validation. Report the test error obtained, along with the value of chosen λ and the coeﬃcient estimates of the ﬁnal Lasso model.
+
+
+
+```{r}
+lasso.mod <- cv.glmnet(train.x, train.y, alpha=1, lambda=grid) 
+lambda.lr <- lasso.mod$lambda.min  
+lambda.lr 
+
+lasso.pred <- predict(lasso.mod, newx=test.x, s=lambda.lr) 
+mean((test.y-lasso.pred)^2) 
+
+x <- model.matrix(mpg~., data=Auto)[,-1] 
+y <- Auto$mpg 
+out.lr <- glmnet(x,y, alpha=1, lambda=grid)  # on whole data set
+lr.coef <- predict(out.lr, type="coefficients", s=lambda.lr)[1:8,]
+lr.coef[lr.coef!=0] 
+```
+
+### REMEMBER TO RERUN THE TRAIN TEST BEFORE AGAIN
+### SET SEED AT THE START, IF WANT TO RERUN RERUN FROM THE START
+
+
+
+
+5. Suppose we estimate the regression coeﬃcientsin a linear regression model by minimizing
+
+for a particular value of s. It is given that the least-square regression model estimates of β1,β2, and β3 are 0.3, −0.26, and 1.2, respectively, with RSS = 23.5.
+(a) What would happen to the RSS when s decreases from 4 to 2? Justify your answers. (b) What would happen to ˆ β1 when s increases from 0 to 2? Justify your answers.
+
+
+
+
+(a) Since sum of square of beta hat=1.5976, the RSS remains to 23.5 when s decreases from 4 to 2 which is still more than 1.5976. 
+ 
+(b) When s is 0, beta 1 hat is zero.  As s increase from 0 to 1.5976, beta 1 hat will change from 0 to 0.3.  However, when s increase from 1.5976 to 2, beta 1 hat will remain the same as 0.3. 
+
+
+

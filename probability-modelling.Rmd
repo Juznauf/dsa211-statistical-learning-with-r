@@ -1,0 +1,290 @@
+---
+title: "Probability Modelling"
+output: html_notebook
+---
+
+
+### Example 1: Chi square distribution 
+
+```{r}
+c1 <- dchisq(1:40, 15)  # chi-square pdf with df=15
+c2 <- pchisq(1:40, 15)  # chi-square cdf with df=15
+c3 <- qchisq(c(0.01, 0.05, 0.1, 0.9, 0.95, 0.99), 15) # chi-square percentiles
+c10 <- dchisq(1:40, 10)  # chi-square pdf with df=10
+plot(1:40, c10, col="green", type="l", xlab="X values", ylab="density",
+     main="Chi-square pdf with 10 and 15 df ")
+lines(1:40, c1, col="red", type="l") # add in another line to the original plot
+legend(25, 0.08, lty=1, col=c("green", "red"), legend= c("df=10", "df=15"))
+```
+
+Support of the chi square is from 0, inf
+
+### Example 2: The t distribution 
+
+![](p6.png)
+
+```{r}
+xval <- seq(from = -4, to =4, by=0.01)
+t1 <- dt(xval, 5)
+t2 <- pt(xval, 5)
+t3 <- qt(c(0.01, 0.05, 0.1, 0.9, 0.95, 0.99), 5)
+n1 <- dnorm(xval, 0, 1)
+plot(xval, n1, col="blue", type="l", xlab="X values", ylab="density",
+     main="t-distribution with 5 df and standard normal distribution ")
+lines(xval, t1, col="red", type="l")
+legend(1.2, 0.35, lty=1, col=c("red", "blue"), legend= c("t with df=5", "N(0,1)"))
+
+```
+
+![](p7.png)
+
+
+### Poisson modelling
+
+![](p8.png)
+
+```{r}
+number.days <- c(484, 391, 164, 45, 11,1,0)
+number.days/1096
+number.death <- c(0:6)
+sum(number.days*number.death)
+
+```
+
+
+
+The proportion is calculated by $\frac{number-of-days}{total-number-of-days}$
+The parameter mule is the number of death per day.
+The parameter mule is calculated by the $\frac{{number.days*number.death}}{total.deaths}$
+With mule calculated, we can then calculate the respective probabilities by using the poisson model (assuming the distribution is poisson)
+
+```{r}
+dpois(0:5, sum(number.days*number.death)/1096)
+ppois(6, sum(number.days*number.death)/1096, lower.tail = FALSE)
+```
+
+The poisson pmf gives us the poisson model 
+
+For the Chi-square goodness of fit test we need to calculate the expected frequencies as well. TO find out the number of days with each death, we take the poisson probabilites for the number of deaths and multiply it with the number of days
+
+
+![](p9.png)
+
+**Adjust the expected frequencies of each cell such that it is above 5**
+
+![](p10.png)
+
+sum of sum of square difference between actual and predicted by poisson divide by the predicted.
+DOF = number of cells - 1 - number of estimated parameters
+```{r}
+1- pchisq(0.1857, 3)
+qchisq(0.01, 3, lower.tail = FALSE)
+```
+The chi square stat must be larger than the model fit is rejected. 
+Since the chi square test stat is smaller than the critical level, the data do not provide sufficient evidence to show the Poisson model is not appropriate at the 0.01 level of significance
+
+
+### Example 3 Poisson modelling london death data
+
+```{r}
+library(fitdistrplus)  # call the package functions
+```
+
+
+```{r}
+death <- c(rep(0,484), rep(1,391), rep(2, 164), rep(3,45), rep(4,11), rep(5,1))  # generate the data set
+fpois <- fitdist(death, distr="pois")  # fit the data set to Poisson distribution
+result1 <- gofstat(fpois, chisqbreaks=c(0:3), discrete=TRUE, 
+                   fitnames=c("Poisson"))  # run the goodness of fit test
+plot(fpois)
+summary(fpois)
+result1
+```
+
+**The count of each theoretical count must at least be 5**
+**The gofstat is only for discrete distributions, else just call the fitted distribution for the model diagnostics**
+
+### Exponential modelling 
+
+### Example 4: Exponential modelling
+Can fit with other distributions as well 
+```{r}
+volcano <- c(126, 73, 3, 6, 37, 23, 73, 23, 2, 65, 
+             94, 51, 26, 21, 6, 68, 16, 
+             20, 6, 18, 6, 41, 40, 18, 41, 11, 12, 
+             38, 77, 61, 26, 3, 38, 50, 91, 12)
+fexp <- fitdist(volcano, distr= "exp")
+fnorm <- fitdist(volcano, distr= "norm")
+summary(fexp)
+summary(fnorm)
+```
+
+
+
+```{r}
+plot(fexp)
+plot(fnorm)
+
+```
+
+
+**Use AIC and BIC to select the best fitting model**
+
+![](p11.png)
+
+![](p12.png)
+
+![](p13.png)
+
+
+### Example 5: Log normal stock price model (singtel data)
+```{r}
+Z74.SI <- read.csv("D:/User/Documents/SMU CONTENT/Year 3 Sem 2/DSA 211/week3/Z74.SI.csv")
+price <- Z74.SI$Adj.Close  # put the closing price to object "price"
+volume <- Z74.SI$Volume
+rate <- NULL  # define a new object "rate" without any elements
+# calculate the rates of daily change and put them to object "rate"
+for (i in 1:(length(price)-1)) 
+      {rate[i] <- (price[i]-price[i+1])/price[i+1]}  
+frate <- fitdist(rate, "norm")
+summary(frate)
+plot(frate)
+
+```
+
+Adj close is adjusted for dividends paid out 
+
+
+### VaR (Value at risk)
+
+![](p14.png)
+
+If VaR(1 day, 99%), the maximum loss over one day is about $10 million at the 99% confidence interval.
+
+The VaR is a function of two parameters the confint and the time horizon
+
+VaR = ${expected.profit.or.loss} - worst.case.loss.at.the.(1-a)level$
+
+Absolute VaR(VaR') = $-worst.case.loss.at.the.(1-a).conf.level$
+
+### Example 6 Nonparametric VaR 
+Historical VaR which is a non-parametric approach, is also called Nonparametric VaR.
+
+For example, observe 500 daily return rates (501 observations) of SingTel stock from 1 August 2017 to 29 July 2019.  
+
+Rank the daily return rates from the smallest to the largest.  Then, use the 1% percentage return rate (about the fifth smallest rate) to estimate the VaR(1, 0.99) of an investment of 4,000 shares of DBS on 29 July 2019 with price $3.30 per share. 
+```{r}
+AbsVar <- -1*quantile(rate, 0.01)*4000*3.30
+meanR <- mean(rate)*4000*3.30
+SingVar1 <- meanR + AbsVar
+meanR
+AbsVar
+SingVar1
+```
+
+SingVar1 is lower than AbsVar, this means there was an expected loss. The type of rate determines the type of VaR, in this case it is a daily rate hence a 1 day VaR is given
+
+
+
+### Example 7: Parametric VaR
+
+```{r}
+SingVaR2 <- sd(rate)*4000*3.30*qnorm(0.99,0,1) # for the 0.99 var
+SingVaR2
+```
+
+The VaR under parametric is smaller as the normal tail is smaller than the non parametric approach
+
+
+
+## Homework 3
+
+### Question 1
+Based on the ‘Discrete’ column of HW3.csv,
+(a) Test whether the data column is from Poisson distribution at α = 0.01. (b) Plot graphs to show how the data set ﬁts to the Poisson distribution.
+
+
+```{r warning=FALSE, message=FALSE}
+HW3 <-  read.csv("D:/User/Documents/SMU CONTENT/Year 3 Sem 2/DSA 211/week3/HW3.csv")
+Disdata <- HW3$Discrete
+fd1 <- fitdist(Disdata, distr = "pois")
+result1 <- gofstat(fd1, chisqbreaks = c(1:7), discrete = TRUE, fitnames = "Poisson")
+result1
+plot(fd1)
+```
+
+As the p-value is smaller than 0.01, we can reject the null hypothesis. Poisson is the true model. The data provide sufficient evidence to reject the Poisson modelling.
+
+### Question 2
+
+Based on the ‘Cont’ column of HW3.csv,
+(a) Choose which distribution (normal, log normal or exponential) is the best choice to model the data. Justify it. (b) Plot graphs to show how the data set ﬁts to the chosen distribution in part (a).
+
+```{r message=FALSE, warning=FALSE}
+Condata <- HW3$Cont
+fd2 <- fitdist(Condata, distr = 'norm')
+fd3 <- fitdist(Condata, distr = 'lnorm')
+fd4 <- fitdist(Condata, distr = 'exp')
+
+
+summary(fd2)
+summary(fd3)
+summary(fd4)
+
+```
+
+
+Normal is the best fitted distribution based on the largest loglikelihood , the smallest AIC and BIC among the three models
+
+
+
+
+```{r}
+plot(fd2)
+plot(fd3)
+plot(fd4)
+
+```
+
+
+### Question 3
+
+Based on the data set of Keppel2019.csv of stock price from 31 July 2018 to 30 July 2019. Assume that an investment has 10,000 shares of Keppel Corporation Limited (BN4.SI) on 30 July 2019 at price of $6.49 per share.
+
+(a) Assume the return rate is normally distributed, calculate the one-day 98% VaR for the investment. 
+
+```{r}
+Keppel2019 <- read.csv("D:/User/Documents/SMU CONTENT/Year 3 Sem 2/DSA 211/week3/Keppel2019.csv")
+
+KeppelPrice <- Keppel2019$Adj.Close
+KeppelRate <- NULL
+
+for (i in 1:length(KeppelPrice)-1) {
+  KeppelRate[i] <-  (KeppelPrice[i] - KeppelPrice[i+1])/KeppelPrice[i+1]
+}
+
+
+# Parametric Var
+
+KeppelVaR1 <- sd(KeppelRate)*10000*6.49*qnorm(0.98,0,1)
+KeppelVaR1
+```
+
+
+VaR(1day, 98%) = 1684.289
+
+(b) Based on the historical approach without any assumption of distribution, calculate the one-day 98% VaR for the investment.
+
+
+```{r}
+
+AbsVarKeppel <- -quantile(KeppelRate, 0.02)*10000*6.49
+MeanKeppel <- mean(KeppelRate)*10000*6.49
+KeppelVar2 <- MeanKeppel + AbsVarKeppel
+KeppelVar2
+```
+
+
+VaR = 1813.475 (historical approach)
+
+

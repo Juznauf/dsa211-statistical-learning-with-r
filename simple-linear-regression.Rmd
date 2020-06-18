@@ -1,0 +1,242 @@
+---
+title: "Simple Linear Regression"
+output: html_notebook
+---
+
+![](p15.png)
+
+![](p16.png)
+
+![](p17.png)
+
+![](p18.png)
+
+
+### Regression Study of STAT101
+
+```{r}
+STAT101 <- read.csv("D:/User/Documents/SMU CONTENT/Year 3 Sem 2/DSA 211/week4/STAT101.csv")
+head(STAT101)
+datatest <- STAT101
+test <- datatest$Test  # define Test column in data set as test
+assign <- datatest$Assignments
+# using lm() function to fit the line with 'test' as response and 'assign' as predictor 
+reg.fit <- lm(test~assign) 
+summary(reg.fit)
+names(reg.fit)
+plot(assign, test, main="Linear relationship between 
+     assignment scores and test scores in STAT101", 
+     xlab="Assignment scores", ylab="Test scores")
+#  check the results of following three functions and compare the different results
+#abline(reg.fit )  
+#abline(reg.fit, lwd=3)
+abline(reg.fit, lwd=3, col="red")
+```
+
+
+
+![](p19.png)
+
+![](p20.png)
+
+![](p21.png)
+
+Residual analysis for homoscedasticity
+Check for constant variance
+
+![](p22.png)
+
+### Assess the model assumptions
+
+```{r}
+resid <- residuals(reg.fit)
+plot(assign, resid, main = "Relationship between assignment scores and residuals",
+     xlab = "Assignment Scores", ylab = "Residuals")
+```
+
+```{r message=FALSE, warning=FALSE}
+library(fitdistrplus)
+```
+
+
+```{r}
+# check the normality assumption
+fnorm <- fitdist(resid, distr = "norm")
+result <- gofstat(fnorm, discrete = FALSE)
+
+result
+
+
+
+```
+
+```{r}
+
+KSCritValue <- 1.36/sqrt(length(test)) # to calculate the KS stat, 1.36 / sqrt of sample size
+KSCritValue 
+summary(fnorm)
+plot(fnorm)
+
+
+```
+
+
+Since KS statistic is 0.0775 < KS critical value 0.1449, we do not reject null hypothesis. We dont have sufficient evidence to show that the residuals is not normally distributed
+
+KS checks for the absolute deviance of the observed CDF against the theoretical CDF
+
+*what is the rationale of using KS stat when we have the normal plots to guide us?*
+
+![](p23.png)
+
+
+### Confidence Interval for the average Y, give X
+
+Making inferences about the CI of Y, the outcome variable. 
+
+
+![](p24.png)
+
+
+![](p25.png)
+
+
+![](p26.png)
+
+
+### Prediction and Estimation 
+
+```{r}
+confint(reg.fit, level = 0.95) # find the confint of the slope and the intercept
+predict(reg.fit, data.frame(assign=c(60,70,100,110)), interval = "confidence", level = 0.95)
+predict(reg.fit, data.frame(assign=c(60,70,100,110)), interval = "prediction", level = 0.95)
+```
+
+
+
+
+
+### Homework 4
+
+### Question 1
+The director of graduate studies at a large college of business has the objective of predicting the grade point average (GPA) of students in an MBA program. The director begins by using the Graduate Management Admission Test (GMAT) score. A sample of 80 students who have completed two years in the program is randomly selected and stored in GPAGMAT.csv.
+
+(a) Construct a scatter plot with the estimated regression equation. 
+```{r}
+GPAGMAT <- read.csv("D:/User/Documents/SMU CONTENT/Year 3 Sem 2/DSA 211/week4/GPAGMAT.csv")
+
+GPA <- GPAGMAT$GPA
+GMAT <- GPAGMAT$GMAT
+
+reg.fit1 <- lm(GPA~GMAT)
+
+plot(GMAT, GPA, main = "Regression of GPA on GMAT", xlab = "GMAT", ylab = "GPA")
+abline(reg.fit1, lwd = 3, col = "red")
+
+```
+
+Refer to r output 
+
+
+(b) Find the Y-intercept and slope of the regression equation and the adjusted r2. 
+
+```{r}
+coef(reg.fit1)
+summary(reg.fit1)
+```
+Y-intercept = -0.8887890 , and slope = 0.0067005, and adjusted r2 = 0.7614 
+
+
+
+(c) Perform a residual analysis on your results and evaluate whether the assumptions of regression have been seriously violated. 
+
+```{r warning=FALSE, ,message=FALSE} 
+residuals1 <- residuals(reg.fit1)
+plot(GMAT, residuals1, main = "Plot of residuals against GMAT", xlab = 'GMAT',
+     ylab = "residuals")
+fnorm <- fitdist(residuals1, distr = "norm")
+plot(fnorm)
+
+```
+
+
+```{r}
+result1 <- gofstat(fnorm, discrete = FALSE)
+result1
+
+KSCritValue1 <-  1.36/sqrt(length(GMAT))
+KSCritValue1
+```
+
+
+Scatter Plot shows the linear relationship betweeen GPA and GMAT. No particular pattern is found in the residuals vs GMAT plot. The P-P plot and Q-Q plot show no deviations from normal assumptions. Refer to r output
+
+
+(d) At the 0.05 level of signiﬁcance, is there evidence of a linear relationship between GMAT score and GPA? What are the values of test statistic and p-value? 
+
+
+```{r}
+summary(reg.fit1)
+
+```
+
+
+As p-value <2r-15< 0.05, we reject null hypothesis B1 = 0, the data provide sufficient evidence of a linear relationship between GMAT score and GPA. The F-statistic is 253.2 and p-value is less than 2e-16
+
+
+
+(e) Construct a 90% conﬁdence interval estimate of the population slope. 
+
+```{r}
+
+confint(reg.fit1, level = 0.95)
+
+```
+
+90% confidence interval esimate of the population slope is (0.006, 0.0074)
+
+(f) Construct 95% conﬁdence interval estimates of the means GPA of students with GMAT scores of 600, 630, 660, or 690. 
+
+
+```{r}
+predict(reg.fit1, data.frame(GMAT = c(600,630, 660, 690)), interval = 'confidence',
+        level = 0.95)
+```
+
+95% confidence interval estimates of the mean GPA of students with GMAT score of 600 is (3.088,  3.175) 
+95% confidence interval estimates of the mean GPA of students with GMAT score of 630 is (3.298,  3.367) 
+95% confidence interval estimates of the mean GPA of students with GMAT score of 660 is (3.492,  3.576) 
+95% confidence interval estimates of the mean GPA of students with GMAT score of 690 is (3.674,  3.795) 
+ 
+
+(g) Construct 99% prediction interval of the GPA for an individual with GMAT scores of 600, 630, 660, or 690.
+
+```{r}
+predict(reg.fit1, data.frame(GMAT = c(600,630, 660, 690)), interval = 'prediction',
+        level = 0.99)
+```
+
+99% prediction interval estimates of the GPA of a student with GMAT score of 600 is  (2.720,   3.543) 
+99% prediction interval estimates of the GPA of a student with GMAT score of 630 is  (2.923,  3.742) 
+99% prediction interval estimates of the GPA of a student with GMAT score of 660 is  (3.122,  3.945) 
+99% prediction interval estimates of the GPA of a student with GMAT score of 690 is  (3.320,  4.150) 
+ 
+ 
+ 
+ 
+## For model assumption checking
+
+```{r}
+library(fitdistrplus)
+fnorm <- fitdist(residuals1, "norm")
+result2 <- gofstat(fnorm, discrete = FALSE)
+result
+
+# for Kolmogorov-smirnov test:
+# critical value is 1.22/sqrt(n) for alpha = 0.10
+# critical value is 1.36/sqrt(n) for alpha = 0.05
+# critical value is 1.63/sqrt(n) for alpha = 0.01
+
+```
+
+

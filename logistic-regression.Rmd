@@ -1,0 +1,361 @@
+---
+title: "Logistic Regression Model"
+output: html_notebook
+---
+
+![](p39.png)
+
+
+## Boxplot the data 
+
+```{r}
+library(ISLR)
+attach(Default)
+summary(Default)
+```
+
+```{r}
+# present the data by graphs and table
+boxplot(balance~default, col=c("blue", "red"), 
+        xlab="Default", ylab="Balance")
+boxplot(income ~ default, col=c("blue", "red"), 
+        xlab="Default", ylab="Income")
+
+```
+
+
+
+
+```{r}
+table(default, student)
+boxplot(income ~ default*student, col=c("blue", "red","yellow", "green"),
+        names=c("No Default; not student", "Default;  Not student", 
+                "No Default; student", "Default; student" ), ylab="Income" )
+
+```
+
+```{r}
+# present the data by ggplot2
+library(ggplot2)
+g1 <- ggplot(data=Default, aes(y=income, x=balance))
+g1+geom_point(aes(color=default),size=1)
+g1+geom_point(aes(color=student),size=1)
+g1+geom_point(aes(color=default),size=1)+facet_wrap(default~student)+labs(
+  title="Plot of balance and income as a function of default and student",
+  subtitle= "Whether a student or not")
+g1+geom_point(aes(color=default),size=1)+facet_wrap(~student)+labs(
+  title="Plot of balance and income as a function of default and student",
+  subtitle= "Whether a student or not")
+
+g2 <- ggplot(data=Default, aes(y=balance, x=default))
+g2+geom_boxplot()+facet_wrap(~student)+labs(
+  title="Boxplot of balance as a function of default and student",
+  subtitle= "Whether a student or not")
+  
+g3 <- ggplot(data=Default, aes(y=income, x=default))
+g3+geom_boxplot()+facet_wrap(~student)+labs(
+  title="Boxplot of income as a function of default and student",
+  subtitle= "Whether a student or not")
+
+```
+
+
+
+
+
+![](p40.png)
+
+![](p41.png)
+
+![](p42.png)
+
+![](p43.png)
+
+![](p44.png)
+
+![](p45.png)
+
+
+
+### Credit card default example
+
+```{r}
+glm.def1 <- glm(default~ balance, data=Default, family=binomial)
+summary(glm.def1)
+pvalue1 <- 1-pchisq(1596.5, 9998)
+pvalue1
+```
+
+For the calculation of the p value, we use the residual deviance as well as the degrees of freedom and calculate the chi sq p-value. The null hypothesis is that the logistic model is a good fitting model. Hence as the p-value is very high, we cannot reject the null hypothesis and conclude insufficient evidence that the logistic model is not a good fitting model 
+
+
+
+
+
+### Making predictions based on the estimate
+
+```{r}
+predict(glm.def1, data.frame(balance=c(1000, 2000)), type="response")
+```
+
+For a balance of 2000, the probability is much higher, and equals to 58.6%
+
+
+### Plotting the logistic regression 
+
+```{r}
+ff <- function(a, b, x) {
+  aa <- exp(a+b*x)
+  ff <- aa/(1+aa)
+  ff # probabilty of default given x
+}
+r1 <-ff(-10.65, 0.0055, 1000)
+r2 <-ff(-10.65, 0.0055, 2000)
+r1
+r2
+bb <- c(1:100*30)
+r3 <- ff(-10.65, 0.0055, bb)
+plot(bb,r3, main="Estimated probability of default using logistic regression",
+     xlab="Balance", ylab="Prob. of Default")
+
+```
+
+
+
+### Calculation of deviance statistic
+
+```{r}
+y <- c(1,1,1,0,0)
+x <- c(24, 27, 29, 28, 32)
+glm.re <- glm(y~x, family=binomial)
+summary(glm.re)
+a <- predict(glm.re, data.frame(x=c(24, 32)), type="response") # will give u the probability
+b <- predict(glm.re, data.frame(x=c(24, 32))) # without response will give u the log odds ratio instead of the probability
+a
+b
+d1 <- sqrt(2*-log(1-(1-a[1]))) # use the probability to calculate not the log odds ratio
+d2 <- -sqrt(2*-log(1-(a[2]-0)))
+d1 # dev res of the first data point
+d2 # residual deviance of the last data point
+resdev <- 0.1939^2+0.6333^2+1.2355^2+(-1.4785)^2+(-0.3793)^2
+resdev
+
+```
+
+
+## For the predict function use type response to get the predicted probabilities and to get the log odds ratio, leave out the type
+
+## The deviance residuals are given in the summary call of the glm
+
+## if want to calculate the deviance identify if the train lable is positive or negative first, then calculate for each data point based on the positive or negative calculation
+
+## the residual deviance is found by the sum of squares of each deviance residues
+
+
+
+
+
+### Logistic regression with several variables
+
+
+![](p46.png)
+
+```{r}
+glm.def2 <- glm(default~ income, data=Default, family=binomial)
+summary(glm.def2)
+
+glm.def3 <- glm(default~ balance+income, data=Default, family=binomial)
+summary(glm.def3)
+
+glm.def4 <- glm(default~ balance+income+student, data=Default, family=binomial)
+summary(glm.def4)
+
+glm.def5 <- glm(default~ balance+student, data=Default, family=binomial)
+summary(glm.def5)
+
+```
+
+
+The AIC of models 1, 2, 3, 4, and 5 are 1600.5, 2920.7, 1585, 1579.5, 1577.7, respectively.  Therefore, model 5 is the best as it has the smallest AIC.
+
+```{r}
+pvalue2 <- 1 - pchisq(1571.7, 9997)
+pvalue2
+```
+
+As the chi sq p -value is more than the significance level, cannot reject the logistic model
+
+
+
+
+### predict values for different models
+```{r}
+predict(glm.def1, data.frame(balance=c(1000, 2000)), type="response")
+predict(glm.def2, data.frame(income=c(40000, 50000)), type="response")
+predict(glm.def3, data.frame(balance=c(1000, 2000), 
+        income=c(40000, 50000)), type="response")
+predict(glm.def4, data.frame(balance=c(1000, 2000), 
+                             income=c(40000, 50000),
+                 student=c("Yes", "No")), type="response")
+predict(glm.def5, data.frame(balance=c(1000, 2000), 
+                             student=c("Yes", "No")), type="response")
+
+```
+
+
+
+
+![](p47.png)
+
+### Calculating confusion matrix for default for model 5 and setting the threshold to 0.5
+
+```{r}
+glm.prob5 <- predict(glm.def5, type="response")
+glm.pred5.1 <- rep("Predicted No Default", 10000)
+glm.pred5.1[glm.prob5> 0.5] <- "Predicted Default"
+table(glm.pred5.1, default)
+table1 <- table(glm.pred5.1, default)
+# calculate the sensitivity = TP/(TP + FN)
+
+sensitivity <- table1[1,2]/sum(table1[,2])
+sensitivity
+# calculate the specificity = TN/(TN + FP)
+
+specificity <- table1[2,1]/sum(table1[,1])
+specificity
+
+# calculate the overall error rate = (FP + FN)/N
+
+overall.error.rate <- sum(table1[1,1],table1[2,2])/sum(table1)
+overall.error.rate
+
+
+```
+
+
+### Setting the threshold to 0.2
+
+```{r}
+glm.prob5 <- predict(glm.def5, type="response")
+glm.pred5.2 <- rep("Predicted No Default", 10000)
+glm.pred5.2[glm.prob5> 0.2] <- "Predicted Default"
+table(glm.pred5.2, default)
+```
+
+
+![](p48.png)
+
+
+
+![](p49.png)
+
+
+## Homework 6
+
+### Question 1
+
+An automotive insurance company wants to predict which ﬁled stolen vehicle claims are fraudulent, based on the mean number of claims submitted per year by the policy holder and whether the policy is a new policy, that is, is three years old or less. Data from a random sample of 98 automotive insurance claims, organized and stored in InsuranceFraud.csv, show that 49 are fraudulent and 49 are not.
+
+
+(a) Develop a logistic regression model to predict the probability of a fraudulent claim, based on the number of claims submitted per year by the policy holder and whether the policy is new.
+
+
+```{r}
+InsFraud <- read.csv("D:/User/Documents/SMU CONTENT/Year 3 Sem 2/DSA 211/week6/InsuranceFraud.csv")
+names(InsFraud)
+
+glm.ins1 <- glm(Fraud~NewB + Claims, data = InsFraud, family = "binomial")
+coef(glm.ins1)
+```
+
+ln(estimated odds)= -7.713+3.812x(New Business)+6.303x(Claims) 
+
+(b) Explain the meaning of the regression coeﬃcients in the model in part (a).
+
+Holding constant the effects of whether the policy is new, for each increase of the number of claims submitted per year by the policy holder, ln(odds) increases by an estimate of 6.303.  Holding constant the number of claims submitted per year by the policy holder, ln(odds) is estimated to be 3.812 higher when the policy is new as compared to when the policy is not new. 
+
+(c) Develop a logistic regression model that includes only the number of claims submitted per year by the policy holder to predict the probability of a fraudulent claim. 
+
+```{r}
+glm.ins2 <- glm(Fraud~Claims, data =  InsFraud, family = 'binomial')
+coef(glm.ins2)
+```
+
+ln(estimated odds)= -5.0293+4.8041*(Claims) 
+
+(d) Develop a logistic regression model that includes only whether the policy is new to predict the probability of a fraudulent claim. 
+```{r}
+
+glm.ins4 <- glm(Fraud~NewB, data =  InsFraud, family = 'binomial')
+coef(glm.ins4)
+```
+
+
+ln(estimated odds)= -0.5423+1.9286*(New Business) 
+
+(e) Develop a logistic regression model to predict the probability of a fraudulent claim, based on the number of claims submitted per year by the policy holder, whether the policy is new and their interaction term. 
+
+```{r}
+glm.ins3 <- glm(Fraud~Claims*NewB, data = InsFraud, family = 'binomial')
+coef(glm.ins3)
+```
+ln(estimated odds)= -6.7930-0.099x(New Business)+5.585x(Claims)+6.106(New Business*Claims) 
+
+(f) At the 0.05 level of signiﬁcance, are there evidence that each of logistic regression models in parts (a), (c), (d) and (e) of predicting the probability of a fraudulent claim is a good ﬁtting model?
+
+```{r}
+summary(glm.ins1)
+summary(glm.ins2)
+summary(glm.ins3)
+```
+
+
+```{r}
+1 - pchisq(38.626, 95)
+1 - pchisq(52.085, 96)
+1 - pchisq(37.319, 94)
+```
+
+
+The p-values for models in parts (a), (c), (d) and (e) are 1, 1, 0.0526, 1 which are higher than 0.05, we cannot reject null hypothesis:  The logistic regression model is a good fitting model.   
+
+(g) Compare the models in (a), (c), (d) and (e). Which one model is the best? 
+
+Model in part (a) is the best model as it has the smallest AIC 44.626 while the AIC for models (c), (d) and (e) are 56.085, 123.47, and 45.318, respectively. 
+
+
+
+(h) Based on the best model obtained in part (g), predict the probability of a fraudulent claim given that the policy holder has submitted a mean of 1.5 claims per year and the policy is not new.
+
+
+
+```{r}
+# best model is model 1
+
+predict(glm.ins1, data.frame(Claims = 1.5, NewB = 'No'), type = 'response')
+```
+
+Estimated prob=0.8509 
+
+
+(i) Based on the best model obtained in part (g), predict the probability of a fraudulent claim given that the policy holder has submitted a mean of 0.5 claim per year and holds a new policy. 
+```{r}
+predict(glm.ins1, data.frame(Claims = .5, NewB = 'Yes'), type = 'response')
+
+```
+
+Estimated prob=0.3210 
+
+(j) Based on the best model obtained in part (g), ﬁnd the confusion matrix with the threshold value being 0.5 for classifying as fraudulent claim and its overall error rate.
+
+
+```{r}
+glm.prob1 <- predict(glm.ins1, type = 'response')
+glm.pred1.1 <- rep("Predicted No Fraud", length(InsFraud$Fraud))
+glm.pred1.1[glm.prob1> 0.5] <- "Predicted Fraud"
+table2 <- table(glm.pred1.1, InsFraud$Fraud)
+table2
+overall.error.rate <- sum(table2[1,1],table2[2,2])/sum(table2)
+overall.error.rate
+```
+

@@ -1,0 +1,200 @@
+---
+title: "Chap 1: Review of statistics and prob"
+output: html_notebook
+---
+
+
+
+```{r include=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE,prompt = FALSE)
+
+```
+
+![](p4.png)
+
+## Example 1
+```{r}
+data1 <- c(23,25,16,27,25,19,14,18,20,33,36,28,26, 15, 17) # input the data set and call it "data1"
+mean1 <- mean(data1)  # find the mean of the data using function "mean"
+resu1 <- sum(data1)/length(data1)  # find the mean using the formula
+var1 <- var(data1)  # find the sample variance
+stdev1 <- sd(data1) # find the sample standard deviation
+resu2 <- sum((data1-mean1)^2)/(length(data1)-1) #find the sample variance using formula
+resu3 <- sqrt(resu2)  # find the sample standard deviation
+popvar <- sum((data1-mean1)^2)/(length(data1))  # find the population variance if the data set is population
+median1 <- median(data1) # find the median of data
+q25 <- quantile(data1, 0.25) # find the 25 percentile
+resu4 <- quantile (data1, c(0.25,0.5, 0.75)) # find the 25, 50, 75 percentiles at the same time
+data2 <- c(data1, -10, 33, 44, 59, 67) # input the second data set which includes the first data set plus 5 obs
+data3 <- c(1, 4, 14, 18, 28, 15, 28, 28, 37, 21, 11, 10, 45, 64, 74) #  input the third data set
+boxplot(data1, data2, data3)  # plot the boxplot of three data sets in one graph
+
+```
+
+
+
+## Example 2: Binomial distributions, n =10, p = 0.2
+
+```{r}
+b1 <- dbinom(0:10, 10, 0.2)  # find the probability mass function with x=0,1,...10
+b2 <- pbinom(0:10, 10, 0.2)  # find the probability cumulative function
+b3 <- qbinom(c(0.25, 0.5, 0.75), 10, 0.2) # find the 25, 50, 75 percentiles
+b4 <- rbinom(100, 10, 0.2)  # generate 100 binomial random numbers
+plot(0:10, b1, col="red", type="h") # plot the pmf
+
+```
+
+
+
+
+## Example 3: Hypergeom distribution
+
+```{r}
+#  Total balls 11, (5 white and 6 black), sample 4 balls without replacement 
+# Random variable is the number of white balls in the sample
+h1 <- dhyper(0:4, 5, 6, 4)  
+h2 <- phyper(0:4, 5, 6, 4)
+h3 <- qhyper(c(0.25, 0.5, 0.75, 0.9), 5,6,4)
+h4 <- rhyper(20, 5,6,4)
+plot(0:4, h1, col="red", type="h")
+
+```
+
+
+
+
+## Example 4: Poisson Distribution
+
+```{r}
+#  mu=4.25, means the average number of events in the given time frame
+p1 <- dpois(0:14, 4.25)
+p2 <- ppois(0:14, 4.25)
+p3 <- qpois(c(0.25, 0.5, 0.75), 4.25)
+p4 <- rpois(35, 4.25)
+plot(0:14, p1, col="blue", type="h")
+```
+
+## Example 5: Normal Distribution with mean=4.25, standard deviation=1.5
+```{r}
+n1 <- dnorm(1:20*0.5, 4.25, 1.5) # find the density function with x=0.5, 1, 1.5...., 10
+n2 <- pnorm(1:20*0.5, 4.25, 1.5) # find the cdf with x=0.5, 1, 1.5, ....., 10
+n3 <- qnorm(1:9*0.1, 4.25, 1.5)  # find the 10, 20, .., 90 percentiles of normal
+n4 <- rnorm(25, 4.25, 1.5) # generate 25 normal random variables
+plot(1:20*0.5, n1, col="red", type="l") # plot the density curve from 0.5 to 10 
+
+```
+
+
+
+## Example 6: exponential Distribution
+
+```{r}
+# lambda =2.5 e.g. average accidents (number of events) per day
+e1 <- dexp(0.2*1:16, 2.5)
+e2 <- pexp(0.2*1:16, 2.5)
+e3 <- qexp(c(0.25, 0.5, 0.75, 0.9), 2.5)
+e4 <- rexp(25, 2.5)
+plot(0.2*1:16, e1, col="green", type="l")
+
+```
+
+
+### Homework 1
+
+
+1. A manufacturing company regularly conducts quality control checks at speciﬁed periods on the products it manufactures. Historically, the failure rate for LED light bulbs that the company manufactures is 4%. Suppose a random sample of 12 LED light bulbs is selected. What is the probability that
+
+(a) none of the LED light bulbs are defective?
+
+Binomial distribution
+
+```{r}
+pbinom(0, 12 , 0.04)
+```
+
+(b) exactly one of the LED light bulbs is defective? 
+
+
+```{r}
+sprintf("The probability that exactly one is defective is %f",dbinom(1, 12, 0.04))
+```
+
+(c) ﬁve or fewer of the LED light bulbs are defective?
+
+```{r}
+pbinom(5, 12, 0.04)
+```
+
+(d) between ﬁve to eight, inclusive, of the LED light bulbs are defective? 
+
+```{r}
+pbinom(8,12, 0.04) - pbinom(4, 12, 0.04)
+
+sum(dbinom(5:8, 12, 0.04))
+```
+
+(e) Plot the probability mass function of defective LED light bulbs in the sample.
+
+
+```{r}
+plot(0:12, dbinom(0:12, 12, 0.04), type = 'h', col= 'red')
+```
+
+
+
+2. An industrial sewing machine uses ball bearings that are targeted to have a diameter of 0.75 inch. The lower and upper speciﬁcation limits under which the ball bearings can operate are 0.74 inch and 0.76 inch, respectively. Past experience has indicated that the actual diameter of the ball bearings is approximately normally distributed, with a mean of 0.754 inch and standard deviation of 0.005 inch. What is the probability that a ball bearing is
+
+
+(a) below the lower speciﬁcation limit?
+```{r}
+pnorm(0.74, 0.754, 0.005)
+```
+
+(b) above the upper speciﬁcation limit
+```{r}
+1 - pnorm(0.76, 0.754, 0.005)
+```
+
+(c) between the target and the actual mean?
+```{r}
+0.5 - pnorm(0.75, 0.754, 0.005)
+```
+
+(d) Of all the ball bearings, 80% of the diameters are lesser than what value? 
+```{r}
+qnorm(0.8, 0.754, 0.005)
+```
+(e) Plot the probability density function of ball bearing from 0.730 inch to 0.770 inch. 
+```{r}
+n <- dnorm(0.73+0:40*0.001, 0.754, 0.005)
+plot(0.73+0:40*0.001,n, type = 'l', col= 'blue')
+```
+
+
+**To smooth out the curves add in more points**
+
+
+(f) Plot the probability cumulative function of ball bearing from 0.730 inch to 0.770 inch.
+```{r}
+n1 <- pnorm(0.73+0:40*0.001, 0.754, 0.005)
+plot(0.73+0:40*0.001, n1, type = 'l', col = 'red')
+```
+
+
+3. Find the mean, median, inter-quantile range, 25 percentile, 75 percentile and standard deviation of the following sample data set: 4, 6, 12, 3, 24, 18, 29, 27, 37, 18, 8, 9, 20, 21, 26, 29, 36, 20
+
+
+```{r}
+s1 <- c(4, 6, 12, 3, 24, 18, 29, 27, 37, 18, 8, 9, 20, 21, 26, 29, 36, 20)
+IQR(s1) # from the 1st quartile till the 3rd quartile
+summary(s1)
+
+var(s1)^0.5
+sd(s1)
+```
+
+
+
+
+
+
